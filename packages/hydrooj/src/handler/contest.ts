@@ -1,5 +1,8 @@
+import { exec } from 'child_process';
 import AdmZip from 'adm-zip';
-import { copyFile, emptyDir, ensureDir, ensureFile, statSync } from 'fs-extra';
+import {
+    copyFile, emptyDir, ensureDir, outputFile, statSync,
+} from 'fs-extra';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
 import { ObjectId } from 'mongodb';
@@ -763,13 +766,13 @@ export class ContestBalloonHandler extends ContestManagementBaseHandler {
 }
 
 export class ContestSimHandler extends ContestManagementBaseHandler {
-    @param('tid', Types.ObjectId)
     async get() {
         this.response.template = 'contest_sim.html';
         this.response.pjax = 'contest_sim.html';
     }
 
-    async postGenerate() {
+    @param('tid', Types.ObjectId)
+    async postGenerate(domainId: string, tid: ObjectId) {
         await this.limitRate('contest_sim_generate', 60, 1);
         try {
             await ensureDir('simtmp');
@@ -778,7 +781,43 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
         } catch (err) {
             throw new ForbiddenError('缺少比赛代码查重算法', err);
         }
-        // console.log('success');
+
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const [tdoc, tsdocs] = await contest.getAndListStatus(domainId, tid);
+            const rnames = {};
+            for (const tsdoc of tsdocs) {
+                for (const j of tsdoc.journal || []) {
+                    let name = `U${tsdoc.uid}_P${j.pid}_R${j.rid}`;
+                    if (typeof j.score === 'number') name += `_S${j.status || 0}@${j.score}`;
+                    rnames[j.rid] = name;
+                }
+            }
+            const zip = new AdmZip();
+            const rdocs = await record.getMulti(domainId, {
+                _id: { $in: Array.from(Object.keys(rnames)).map((id) => new ObjectId(id)) },
+            }).toArray();
+            await Promise.all(rdocs.map(async (rdoc) => {
+                if (rdoc.files?.code) {
+                    const [id, filename] = rdoc.files?.code?.split('#') || [];
+                    if (!id) return;
+                    zip.addFile(
+                        `${rnames[rdoc._id.toHexString()]}.${filename || 'txt'}`,
+                        await streamToBuffer(await storage.get(`submission/${id}`)),
+                    );
+                } else if (rdoc.code) {
+                    zip.addFile(`${rnames[rdoc._id.toHexString()]}.${rdoc.lang}`, Buffer.from(rdoc.code));
+                }
+            }));
+            await outputFile('simtmp/code.zip', zip.toBuffer());
+            exec('unzip simtmp/code.zip -d simtmp');
+            exec('simtmp/sim -a >> simtmp/output.txt');
+        } catch (err) {
+            throw new ForbiddenError('选手代码获取错误', err);
+        }
+
+        exec('sim -a >> out.txt');
+
         this.back();
     }
 }
