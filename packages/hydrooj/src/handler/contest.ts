@@ -1,5 +1,5 @@
 import AdmZip from 'adm-zip';
-import { statSync } from 'fs-extra';
+import { copyFile, emptyDir, ensureDir, ensureFile, statSync } from 'fs-extra';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
 import { ObjectId } from 'mongodb';
@@ -10,6 +10,7 @@ import { Context } from '../context';
 import {
     BadRequestError, ContestNotAttendedError, ContestNotEndedError, ContestNotFoundError, ContestNotLiveError,
     ContestScoreboardHiddenError, FileLimitExceededError, FileUploadError,
+    ForbiddenError,
     InvalidTokenError, NotAssignedError, PermissionError, ValidationError,
 } from '../error';
 import { ScoreboardConfig, Tdoc } from '../interface';
@@ -761,6 +762,27 @@ export class ContestBalloonHandler extends ContestManagementBaseHandler {
     }
 }
 
+export class ContestSimHandler extends ContestManagementBaseHandler {
+    @param('tid', Types.ObjectId)
+    async get() {
+        this.response.template = 'contest_sim.html';
+        this.response.pjax = 'contest_sim.html';
+    }
+
+    async postGenerate() {
+        await this.limitRate('contest_sim_generate', 60, 1);
+        try {
+            await ensureDir('simtmp');
+            await emptyDir('simtmp');
+            await copyFile('sim/sim_c++', 'simtmp/sim');
+        } catch (err) {
+            throw new ForbiddenError('缺少比赛代码查重算法', err);
+        }
+        // console.log('success');
+        this.back();
+    }
+}
+
 export async function apply(ctx: Context) {
     ctx.Route('contest_create', '/contest/create', ContestEditHandler);
     ctx.Route('contest_main', '/contest', ContestListHandler, PERM.PERM_VIEW_CONTEST);
@@ -774,4 +796,5 @@ export async function apply(ctx: Context) {
     ctx.Route('contest_file_download', '/contest/:tid/file/:filename', ContestFileDownloadHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_user', '/contest/:tid/user', ContestUserHandler, PERM.PERM_VIEW_CONTEST);
     ctx.Route('contest_balloon', '/contest/:tid/balloon', ContestBalloonHandler, PERM.PERM_VIEW_CONTEST);
+    ctx.Route('contest_sim', '/contest/:tid/sim', ContestSimHandler, PERM.PERM_EDIT_CONTEST);
 }
