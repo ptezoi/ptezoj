@@ -822,16 +822,25 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             let str = csvstr.split('\n');
             let arr1:any = [];
             let arr2:any = [];
+            let arr3:any = [];
+            let arr4:any = [];
+            let arr:any = [];
             str.forEach(line => {
                 arr1.push(line.toString().split(','));
             });
             arr1.forEach(line => {
                 arr2.push(line.toString().replaceAll(',','_').split('_'));
             });
-            console.log(csvstr);
-            console.log(str);
-            console.log(arr1);
-            console.log(arr2);
+            arr2.forEach(line => {
+                arr3.push(line.toString().replaceAll('P','').split(','));
+            });
+            arr3.forEach(line => {
+                arr4.push(line.toString().replaceAll('R','').split(','));
+            });
+            arr4.forEach(line => {
+                arr.push(line.toString().replaceAll('U','').split(','));
+            });
+            console.log(arr);
             coll.deleteMany({'contestid': tid});
             /*coll.insertOne{
                 _id: new ObjectId();
