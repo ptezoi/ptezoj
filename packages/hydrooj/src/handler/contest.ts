@@ -5,7 +5,7 @@ import {
 } from 'fs-extra';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
-import { ObjectId } from 'mongodb';
+import { Collection, ObjectId } from 'mongodb';
 import {
     Counter, sortFiles, streamToBuffer, Time, yaml,
 } from '@hydrooj/utils/lib/utils';
@@ -16,7 +16,7 @@ import {
     ForbiddenError,
     InvalidTokenError, NotAssignedError, PermissionError, ValidationError,
 } from '../error';
-import { ScoreboardConfig, Tdoc } from '../interface';
+import { SIMdoc, ScoreboardConfig, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -33,6 +33,10 @@ import {
     Handler, param, post, Types,
 } from '../service/server';
 import { registerResolver, registerValue } from './api';
+import db from '../service/db';
+import simpleGit from 'simple-git';
+
+export const coll: Collection<SIMdoc> = db.collection('sim');
 
 registerValue('Contest', [
     ['_id', 'ObjectID!'],
@@ -778,6 +782,7 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             await ensureDir('simtmp');
             await emptyDir('simtmp');
             await copyFile('sim/sim_c++', 'simtmp/sim');
+            await copyFile('sim/process', 'simtmp/process');
         } catch (err) {
             throw new ForbiddenError('缺少比赛代码查重算法', err);
         }
@@ -806,17 +811,33 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
                         await streamToBuffer(await storage.get(`submission/${id}`)),
                     );
                 } else if (rdoc.code) {
-                    zip.addFile(`${rnames[rdoc._id.toHexString()]}.${rdoc.lang}`, Buffer.from(rdoc.code));
+                    zip.addFile(`${rnames[rdoc._id.toHexString()]}.cpp`, Buffer.from(rdoc.code));
                 }
             }));
             await outputFile('simtmp/code.zip', zip.toBuffer());
             exec('unzip simtmp/code.zip -d simtmp');
-            exec('simtmp/sim -a >> simtmp/output.txt');
+            exec('chmod 777 simtmp/sim')
+            exec('./simtmp/sim -p simtmp/*.cpp >> simtmp/output.txt');
         } catch (err) {
-            throw new ForbiddenError('选手代码获取错误', err);
+            throw new ForbiddenError(err);
         }
 
-        exec('sim -a >> out.txt');
+        try {
+            coll.deleteMany({'contestid': tid});
+            exec('./simtmp/process << simtmp/output.txt >> simtmp/process.csv');
+            /*coll.insertOne{
+                _id: new ObjectId();
+                contestid: tid;
+                user1:
+                record1:
+                user2:
+                record2:
+                simlarity:
+                status:
+            }*/
+        } catch (err) {
+            throw new ForbiddenError(err);
+        }
 
         this.back();
     }
