@@ -820,11 +820,18 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             exec('chmod 777 simtmp/process.csv')
             let csvstr: string = readFileSync('simtmp/process.csv').toString();
             let str = csvstr.split('\n');
-            let arr:any = []
+            let arr1:any = [];
+            let arr2:any = [];
             str.forEach(line => {
-                arr.push(line.split(','));
+                arr1.push(line.toString().split(','));
             });
-            console.log(arr);
+            arr1.forEach(line => {
+                arr2.push(line.toString().replaceAll(',','_').split('_'));
+            });
+            console.log(csvstr);
+            console.log(str);
+            console.log(arr1);
+            console.log(arr2);
             coll.deleteMany({'contestid': tid});
             /*coll.insertOne{
                 _id: new ObjectId();

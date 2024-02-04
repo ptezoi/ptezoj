@@ -12,7 +12,9 @@ int main(){
 	string a,b,c; int d; string e,f,g,h;
 	while(cin>>a>>b>>c>>d>>e>>f>>g>>h){
 		a.erase(a.begin(),a.begin()+7);
+		a.erase(a.end() - 9,a.end());
 		g.erase(g.begin(),g.begin()+7);
+		g.erase(g.end() - 9,g.end());
 		cout<<a<<","<<g<<","<<d<<endl;
 	}
 	return 0;
