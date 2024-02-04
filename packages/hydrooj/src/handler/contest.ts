@@ -824,7 +824,7 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
 
         try {
             coll.deleteMany({'contestid': tid});
-            exec('./simtmp/process << simtmp/output.txt >> simtmp/process.csv');
+            exec('./simtmp/process < simtmp/output.txt > simtmp/process.csv');
             /*coll.insertOne{
                 _id: new ObjectId();
                 contestid: tid;
