@@ -841,8 +841,8 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
                 arr.push(line.toString().replaceAll('U','').split(','));
             });
             console.log(arr);
-            coll.deleteMany({'contestid': tid});
-            for(let i = 0;i<arr.length();i++){
+            coll.deleteMany({'contest': tid});
+            for(let i = 0;i<arr.length;i++){
                 let user1 = arr[i][0];
                 let record1 = arr[i][2];
                 let user2 = arr[i][3];
