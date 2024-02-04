@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import AdmZip from 'adm-zip';
 import {
-    copyFile, emptyDir, ensureDir, outputFile, statSync,
+    copyFile, emptyDir, ensureDir, outputFile, readFileSync, statSync,
 } from 'fs-extra';
 import { pick } from 'lodash';
 import moment from 'moment-timezone';
@@ -783,11 +783,7 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             await emptyDir('simtmp');
             await copyFile('sim/sim_c++', 'simtmp/sim');
             await copyFile('sim/process', 'simtmp/process');
-        } catch (err) {
-            throw new ForbiddenError('缺少比赛代码查重算法', err);
-        }
 
-        try {
             // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const [tdoc, tsdocs] = await contest.getAndListStatus(domainId, tid);
             const rnames = {};
@@ -816,15 +812,20 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             }));
             await outputFile('simtmp/code.zip', zip.toBuffer());
             exec('unzip simtmp/code.zip -d simtmp');
-            exec('chmod 777 simtmp/sim')
-            exec('./simtmp/sim -p simtmp/*.cpp >> simtmp/output.txt');
-        } catch (err) {
-            throw new ForbiddenError(err);
-        }
 
-        try {
-            coll.deleteMany({'contestid': tid});
+            exec('chmod 777 simtmp/sim')
+            exec('./simtmp/sim -p simtmp/*.cpp > simtmp/output.txt');
             exec('./simtmp/process < simtmp/output.txt > simtmp/process.csv');
+
+            exec('chmod 777 simtmp/process.csv')
+            let csvstr: string = readFileSync('simtmp/process.csv').toString();
+            let str = csvstr.split('\n');
+            let arr:any = []
+            str.forEach(line => {
+                arr.push(line.split(','));
+            });
+            console.log(arr);
+            coll.deleteMany({'contestid': tid});
             /*coll.insertOne{
                 _id: new ObjectId();
                 contestid: tid;
@@ -838,7 +839,6 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
         } catch (err) {
             throw new ForbiddenError(err);
         }
-
         this.back();
     }
 }
