@@ -817,7 +817,7 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             exec('./simtmp/sim -p simtmp/*.cpp > simtmp/output.txt');
             exec('./simtmp/process < simtmp/output.txt > simtmp/process.csv');
 
-            exec('chmod 777 simtmp/process.csv')
+            exec('chmod 777 simtmp/process.csv');
             let csvstr: string = readFileSync('simtmp/process.csv').toString();
             let str = csvstr.split('\n');
             let arr1:any = [];
@@ -841,13 +841,14 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
                 arr.push(line.toString().replaceAll('U','').split(','));
             });
             console.log(arr);
-            coll.deleteMany({'contest': tid});
-            for(let i = 0;i<arr.length;i++){
+            await coll.deleteMany({'contest': tid});
+            for(let i = 0;i<arr.length-1;i++){
                 let user1 = arr[i][0];
                 let record1 = arr[i][2];
                 let user2 = arr[i][3];
                 let record2 = arr[i][5];
                 let similarity = arr[i][6];
+                console.log(user1,record1,user2,record2,similarity);
                 coll.insertOne({
                     _id: new ObjectId(),
                     contest: tid,
