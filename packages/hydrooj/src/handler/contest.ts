@@ -842,16 +842,23 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             });
             console.log(arr);
             coll.deleteMany({'contestid': tid});
-            /*coll.insertOne{
-                _id: new ObjectId();
-                contestid: tid;
-                user1:
-                record1:
-                user2:
-                record2:
-                simlarity:
-                status:
-            }*/
+            for(let i = 0;i<arr.length();i++){
+                let user1 = arr[i][0];
+                let record1 = arr[i][2];
+                let user2 = arr[i][3];
+                let record2 = arr[i][5];
+                let similarity = arr[i][6];
+                coll.insertOne({
+                    _id: new ObjectId(),
+                    contest: tid,
+                    user1: user1,
+                    record1: record1,
+                    user2: user2,
+                    record2: record2,
+                    similarity: similarity,
+                    status: 0,
+                });
+            }
         } catch (err) {
             throw new ForbiddenError(err);
         }

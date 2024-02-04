@@ -94,7 +94,7 @@ export interface Udoc extends Record<string, any> {
 }
 
 export interface SIMdoc extends Record<string, any> {
-    _id: number;
+    _id: ObjectId;
     contest: ObjectId;
     user1: number;
     record1: ObjectId;
