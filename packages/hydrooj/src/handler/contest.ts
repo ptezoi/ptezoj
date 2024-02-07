@@ -16,7 +16,7 @@ import {
     ForbiddenError,
     InvalidTokenError, NotAssignedError, PermissionError, ValidationError,
 } from '../error';
-import { SIMdoc, ScoreboardConfig, Tdoc } from '../interface';
+import { ScoreboardConfig, SIMdoc, Tdoc } from '../interface';
 import { PERM, PRIV, STATUS } from '../model/builtin';
 import * as contest from '../model/contest';
 import * as discussion from '../model/discussion';
@@ -29,12 +29,11 @@ import ScheduleModel from '../model/schedule';
 import storage from '../model/storage';
 import * as system from '../model/system';
 import user from '../model/user';
+import db from '../service/db';
 import {
     Handler, param, post, Types,
 } from '../service/server';
 import { registerResolver, registerValue } from './api';
-import db from '../service/db';
-import simpleGit from 'simple-git';
 
 export const coll: Collection<SIMdoc> = db.collection('sim');
 
@@ -770,9 +769,19 @@ export class ContestBalloonHandler extends ContestManagementBaseHandler {
 }
 
 export class ContestSimHandler extends ContestManagementBaseHandler {
-    async get() {
+    @param('tid', Types.ObjectId)
+    async get(domainId: string, tid: ObjectId) {
         this.response.template = 'contest_sim.html';
         this.response.pjax = 'contest_sim.html';
+        const sdocs = await coll.find({ contest: tid }).toArray();
+        const udict1 = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user1))]);
+        const udict2 = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user2))]);
+        // console.log(udict1);
+        this.response.body = {
+            sdocs,
+            udict1,
+            udict2,
+        };
     }
 
     @param('tid', Types.ObjectId)
@@ -813,50 +822,48 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
             await outputFile('simtmp/code.zip', zip.toBuffer());
             exec('unzip simtmp/code.zip -d simtmp');
 
-            exec('chmod 777 simtmp/sim')
+            exec('chmod 777 simtmp/sim');
             exec('./simtmp/sim -p simtmp/*.cpp > simtmp/output.txt');
             exec('./simtmp/process < simtmp/output.txt > simtmp/process.csv');
 
             exec('chmod 777 simtmp/process.csv');
-            let csvstr: string = readFileSync('simtmp/process.csv').toString();
-            let str = csvstr.split('\n');
-            let arr1:any = [];
-            let arr2:any = [];
-            let arr3:any = [];
-            let arr4:any = [];
-            let arr:any = [];
-            str.forEach(line => {
+            const csvstr: string = readFileSync('simtmp/process.csv').toString();
+            const str = csvstr.split('\n');
+            const arr1: any = [];
+            const arr2: any = [];
+            const arr3: any = [];
+            const arr4: any = [];
+            const arr: any = [];
+            str.forEach((line) => {
                 arr1.push(line.toString().split(','));
             });
-            arr1.forEach(line => {
-                arr2.push(line.toString().replaceAll(',','_').split('_'));
+            arr1.forEach((line) => {
+                arr2.push(line.toString().replaceAll(',', '_').split('_'));
             });
-            arr2.forEach(line => {
-                arr3.push(line.toString().replaceAll('P','').split(','));
+            arr2.forEach((line) => {
+                arr3.push(line.toString().replaceAll('P', '').split(','));
             });
-            arr3.forEach(line => {
-                arr4.push(line.toString().replaceAll('R','').split(','));
+            arr3.forEach((line) => {
+                arr4.push(line.toString().replaceAll('R', '').split(','));
             });
-            arr4.forEach(line => {
-                arr.push(line.toString().replaceAll('U','').split(','));
+            arr4.forEach((line) => {
+                arr.push(line.toString().replaceAll('U', '').split(','));
             });
-            console.log(arr);
-            await coll.deleteMany({'contest': tid});
-            for(let i = 0;i<arr.length-1;i++){
-                let user1 = arr[i][0];
-                let record1 = arr[i][2];
-                let user2 = arr[i][3];
-                let record2 = arr[i][5];
-                let similarity = arr[i][6];
-                console.log(user1,record1,user2,record2,similarity);
+            await coll.deleteMany({ contest: tid });
+            for (let i = 0; i < arr.length - 1; i++) {
+                const user1 = arr[i][0];
+                const record1 = arr[i][2];
+                const user2 = arr[i][3];
+                const record2 = arr[i][5];
+                const similarity = arr[i][6];
                 coll.insertOne({
                     _id: new ObjectId(),
                     contest: tid,
-                    user1: user1,
-                    record1: record1,
-                    user2: user2,
-                    record2: record2,
-                    similarity: similarity,
+                    user1,
+                    record1,
+                    user2,
+                    record2,
+                    similarity,
                     status: 0,
                 });
             }

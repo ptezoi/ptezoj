@@ -19,13 +19,17 @@
                <th class="col--record"><a>记录 1</a>
                <th class="col--user"><a>用户 2</a>
                <th class="col--record"><a>记录 2</a>
+               <th class="col--record"><a>相似度</a>
             </tr>
+            {% for sdoc in sdocs %}
             <tr>
-              <th class="col--user"><a>用户 1</a>
-              <th class="col--record"><a>记录 1</a>
-              <th class="col--user"><a>用户 2</a>
-              <th class="col--record"><a>记录 2</a>
+              <th class="col--user"><a>{{ sdoc['user1'] }}</a>
+              <th class="col--record"><a>{{ sdoc['record1'] }}</a>
+              <th class="col--user"><a>{{ sdoc['user2'] }}</a>
+              <th class="col--record"><a>{{ sdoc['record2'] }}</a>
+              <th class="col"><a>{{ sdoc['similarity'] }}%</a>
             </tr>
+            {% endfor %}
           </thead>
         </table>
       </div>
