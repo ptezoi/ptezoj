@@ -774,9 +774,8 @@ export class ContestSimHandler extends ContestManagementBaseHandler {
         this.response.template = 'contest_sim.html';
         this.response.pjax = 'contest_sim.html';
         const sdocs = await coll.find({ contest: tid }).toArray();
-        const udict1 = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user1))]);
-        const udict2 = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user2))]);
-        // console.log(udict1);
+        const [udict1] = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user1))]);
+        const [udict2] = await Promise.all([user.getList(domainId, sdocs.map((sdoc) => sdoc.user2))]);
         this.response.body = {
             sdocs,
             udict1,

@@ -21,15 +21,17 @@
                <th class="col--record"><a>记录 2</a>
                <th class="col--record"><a>相似度</a>
             </tr>
-            {% for sdoc in sdocs %}
+            {%- for sdoc in sdocs -%}
+            {% set udoc1 = udict1[sdoc['user1']] %}
+            {% set udoc2 = udict2[sdoc['user2']] %}
             <tr>
-              <th class="col--user"><a>{{ sdoc['user1'] }}</a>
-              <th class="col--record"><a>{{ sdoc['record1'] }}</a>
-              <th class="col--user"><a>{{ sdoc['user2'] }}</a>
-              <th class="col--record"><a>{{ sdoc['record2'] }}</a>
+              <th class="col--user"><a>{{ user.render_inline(udoc1, avatar=false, badge=false) }}</a>
+              <th class="col--record"><a href="../../record/{{ sdoc['record1'] }}">{{ sdoc['record1'] }}</a>
+              <th class="col--user"><a>{{ user.render_inline(udoc2, avatar=false, badge=false) }}</a>
+              <th class="col--record"><a href="../../record/{{ sdoc['record2'] }}">{{ sdoc['record2'] }}</a>
               <th class="col"><a>{{ sdoc['similarity'] }}%</a>
             </tr>
-            {% endfor %}
+            {%- endfor -%}
           </thead>
         </table>
       </div>
